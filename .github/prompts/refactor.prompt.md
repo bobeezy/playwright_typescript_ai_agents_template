@@ -6,33 +6,33 @@ tools:
   - editFiles
 ---
 
-You are working in a **Playwright Test + TypeScript** project. Refactor the file(s) provided by the user without changing the intended test behaviour.
+You are working in a **Playwright Test + JavaScript** project. Refactor the file(s) provided by the user without changing the intended test behaviour.
 
 ## Scope
 
 Refactoring may apply to any of:
 
-- `tests/web/*.web.spec.ts` — spec readability, step coverage, assertion style
-- `tests/api/*.api.spec.ts` — spec readability, client usage, assertion style
-- `pages/*Page.ts` — locator stability, method naming, encapsulation
-- `clients/*ApiClient.ts` — method extraction, `callApiWithReport` usage
+- `tests/web/*.web.spec.js` — spec readability, step coverage, assertion style
+- `tests/api/*.api.spec.js` — spec readability, client usage, assertion style
+- `pages/*Page.js` — locator stability, method naming, encapsulation
+- `clients/*ApiClient.js` — method extraction, `callApiWithReport` usage
 - `fixtures/`, `hooks/`, `utils/` — if the user explicitly includes them
 
 ## What to improve
 
 ### Specs (`tests/web/`, `tests/api/`)
 
-- Ensure `test` and `expect` are imported from `fixtures/webTest.ts` or `fixtures/apiTest.ts` — not from `@playwright/test`
+- Ensure `test` and `expect` are imported via `require('fixtures/webTest.js')` or `require('fixtures/apiTest.js')` — not from `@playwright/test`
 - Add `expect.hasAssertions()` at the start of web tests if missing
 - Wrap multi-step web flows in `test.step('...', async () => { ... })` — steps should read like a user journey
-- Extract repeated navigation and assertion sequences into local helper functions within the `test.describe` block (see `openLoginPage`, `expectLoginFailure` in `login.web.spec.ts`)
+- Extract repeated navigation and assertion sequences into local helper functions within the `test.describe` block (see `openLoginPage`, `expectLoginFailure` in `login.web.spec.js`)
 - Move data literals (invalid passwords, edge-case strings) to `data/web/*.json` or `data/api/*.json`
 - Remove duplicated setup that belongs in `beforeEach` or a page object method
-- Replace `response.json()` casts with typed `body as Record<string, unknown>` where the codebase already does so
+- Keep response body access clean — `body.field` directly, no TypeScript casting needed
 
-### Page objects (`pages/*Page.ts`)
+### Page objects (`pages/*Page.js`)
 
-- Ensure all locator fields are `readonly` and typed as `Locator`
+- Ensure all locator fields are assigned in the constructor and referenced as `this.<name>`
 - Replace brittle selectors with the next stable option in the priority order:
   1. `page.locator('#id')`
   2. `page.getByRole(role, { name })`
@@ -41,21 +41,23 @@ Refactoring may apply to any of:
   5. `page.getByText(text)`
   6. Stable attribute selector
 - Move any assertion (`expect(...)`) that crept into the page object back into the spec
-- Extract repeated selector logic into a named `Locator` field rather than calling `page.locator(...)` inline inside methods
+- Extract repeated selector logic into a named locator field rather than calling `page.locator(...)` inline inside methods
+- Ensure `module.exports = { <Name>Page };` is at the bottom
 
-### API clients (`clients/*ApiClient.ts`)
+### API clients (`clients/*ApiClient.js`)
 
-- Ensure every HTTP call goes through `callApiWithReport` from `utils/apiReporter.ts`
-- Extract duplicated request-building logic into a shared private method or a shared `ClientOptions` pattern (see `AuthApiClient` and `UserApiClient`)
+- Ensure every HTTP call goes through `callApiWithReport` from `utils/apiReporter.js`
+- Extract duplicated request-building logic into a shared private method or a shared options pattern
 - Remove any inline `request.post / request.get` calls that bypassed the client
+- Ensure `module.exports = { <Name>ApiClient };` is at the bottom
 
 ## What not to change
 
 - Test titles, scenario coverage, or expected outcomes
 - The behaviour under test (no logic changes)
-- `hooks/WebHooks.ts` credential redaction selectors unless the user explicitly asks
-- `playwright.config.ts` unless the user explicitly asks
-- Fixture registration in `fixtures/webTest.ts` or `fixtures/apiTest.ts`
+- `hooks/WebHooks.js` credential redaction selectors unless the user explicitly asks
+- `playwright.config.js` unless the user explicitly asks
+- Fixture registration in `fixtures/webTest.js` or `fixtures/apiTest.js`
 
 ## How to proceed
 
@@ -68,5 +70,5 @@ Refactoring may apply to any of:
 
 ## Inputs needed from the user
 
-- File path(s) to refactor, e.g. `tests/web/login.web.spec.ts`, `pages/LoginPage.ts`, `clients/UserApiClient.ts`
+- File path(s) to refactor, e.g. `tests/web/login.web.spec.js`, `pages/LoginPage.js`, `clients/UserApiClient.js`
 - Any specific smell or concern to focus on (optional — if omitted, apply all applicable rules above)

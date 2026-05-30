@@ -5,7 +5,7 @@ Please complete the sections below before requesting review.
 ## 1️⃣ Pre-submit checklist
 
 - [ ] No secrets, tokens, or real credentials in committed files (use `data/credentials/.env.credentials`, gitignored)
-- [ ] Web specs import `test` / `expect` from `fixtures/webTest.ts`; API specs from `fixtures/apiTest.ts`
+- [ ] Web specs import `test` / `expect` from `fixtures/webTest.js`; API specs from `fixtures/apiTest.js`
 - [ ] UI logic in page objects; HTTP calls in API clients (not duplicated in specs)
 - [ ] `npm run lint` passes
 - [ ] `gitleaks detect --source .` passes (also run on pre-commit via Husky)
@@ -44,7 +44,7 @@ Please complete the sections below before requesting review.
 - [ ] 🧪 Test coverage (new or updated `tests/web` or `tests/api` specs)
 - [ ] 🏗️ Framework / helpers (`pages/`, `clients/`, `fixtures/`, `hooks/`, `utils/`)
 - [ ] 📄 Test data (`data/web/`, `data/api/`) — no real credentials
-- [ ] ⚙️ Configuration (`playwright.config.ts`, `.env.example`, ESLint)
+- [ ] ⚙️ Configuration (`playwright.config.js`, `.env.example`, ESLint)
 - [ ] 📚 Documentation (`README.md`, `.github/copilot-instructions.md`)
 - [ ] 🐛 Bug fix
 - [ ] ♻️ Refactor (no intended behaviour change)

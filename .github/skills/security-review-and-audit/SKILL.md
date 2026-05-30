@@ -9,7 +9,7 @@ description: Review security-sensitive changes to .github/ control-plane assets 
 
 - Any file under `.github/` is being added or changed: `agents/`, `skills/`, `guardrails/`, `prompts/`, `rules/`, `copilot-instructions.md`
 - A prompt, skill, or agent instruction could affect how Copilot behaves for all contributors
-- A change touches Husky hooks (`.husky/`), `playwright.config.ts` secrets handling, or `utils/apiReporter.ts` redaction logic
+- A change touches Husky hooks (`.husky/`), `playwright.config.js` secrets handling, or `utils/apiReporter.js` redaction logic
 
 ## Why this matters
 
@@ -41,12 +41,12 @@ If any answer is **yes**, flag it and ask the user for explicit confirmation bef
 |----------|-------------|
 | `.github/agents/*.agent.md` | `tests/`, `pages/`, `clients/` test code |
 | `.github/skills/**/SKILL.md` | `data/` test fixtures |
-| `.github/guardrails/*.md` | `playwright.config.ts` (unless secrets handling changes) |
+| `.github/guardrails/*.md` | `playwright.config.js` (unless secrets handling changes) |
 | `.github/prompts/*.md` | `README.md` general docs |
 | `.github/rules/*.md` | Normal refactors and spec additions |
 | `.github/copilot-instructions.md` | |
 | `.husky/pre-commit` | |
-| `utils/apiReporter.ts` redaction logic | |
+| `utils/apiReporter.js` redaction logic | |
 
 ## Green patterns
 

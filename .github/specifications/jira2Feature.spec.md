@@ -4,14 +4,14 @@
 
 ## Goal
 
-Given a Jira ticket, extract acceptance criteria, propose Playwright test scenarios without writing code, then implement only the user-approved scenarios as `.web.spec.ts` or `.api.spec.ts` files matching the patterns in this repo.
+Given a Jira ticket, extract acceptance criteria, propose Playwright test scenarios without writing code, then implement only the user-approved scenarios as `.web.spec.js` or `.api.spec.js` files matching the patterns in this repo.
 
 ## Inputs
 
 | Input | Description | Example |
 |-------|-------------|---------|
 | Jira ticket | URL or key | `https://workspace.atlassian.net/browse/TE-123` or `TE-123` |
-| Existing specs (optional) | Files to read before proposing, to avoid duplicating coverage | `tests/web/login.web.spec.ts` |
+| Existing specs (optional) | Files to read before proposing, to avoid duplicating coverage | `tests/web/login.web.spec.js` |
 | Scenarios to skip (optional) | AC items out of scope for automation | `"do not automate the SSO path"` |
 
 ## Process
@@ -42,34 +42,34 @@ Return a table with columns: `#`, `Type`, `Description`, `Layer`, `Priority`, `E
 
 | Rule | Detail |
 |------|--------|
-| File location | `tests/web/<name>.web.spec.ts` |
-| Fixture import | `import { test, expect } from '../../fixtures/webTest'` |
+| File location | `tests/web/<name>.web.spec.js` |
+| Fixture import | `const { test, expect } = require('../../fixtures/webTest')` |
 | Credentials | `getRequiredEnv('WEB_LOGIN_USERNAME')` etc. |
 | Negative/edge data | `data/web/<name>.json` — no real credentials |
 | Steps | Each test wrapped in `test.step(...)` with user-journey titles |
 | Guard | `expect.hasAssertions()` at the start of each test |
 | Helpers | Repeated navigation/assertion flows extracted to local functions inside `test.describe` |
-| Page object | Reuse from `pages/` or create `pages/<Name>Page.ts` if missing |
+| Page object | Reuse from `pages/` or create `pages/<Name>Page.js` if missing |
 
 #### API specs
 
 | Rule | Detail |
 |------|--------|
-| File location | `tests/api/<name>.api.spec.ts` |
-| Fixture import | `import { test, expect } from '../../fixtures/apiTest'` |
+| File location | `tests/api/<name>.api.spec.js` |
+| Fixture import | `const { test, expect } = require('../../fixtures/apiTest')` |
 | Client | `new <Name>ApiClient({ request, testInfo })` |
 | Credentials | `getRequiredEnv('API_LOGIN_USERNAME')` etc. |
 | Negative data | `data/api/<name>.json` — no real credentials |
 | Assertions | `response.ok()`, `response.status()`, body fields, optional `metrics.finalAttemptDurationMs` |
-| New endpoints | Add method to `clients/<Name>ApiClient.ts` using `callApiWithReport` |
+| New endpoints | Add method to `clients/<Name>ApiClient.js` using `callApiWithReport` |
 
 ### Phase 5 — Validation
 
 Run and report:
 
 ```
-npx playwright test tests/web/<file>.web.spec.ts
-npx playwright test tests/api/<file>.api.spec.ts
+npx playwright test tests/web/<file>.web.spec.js
+npx playwright test tests/api/<file>.api.spec.js
 npm run lint
 ```
 
@@ -81,14 +81,14 @@ Report: commands run, pass/fail, any failing test titles and error messages.
 - Do not duplicate existing scenario coverage
 - No real credentials, tokens, or PII in data files or chat output
 - No Gherkin, feature files, or step definitions
-- No `import { test, expect } from '@playwright/test'` in spec files
+- No `require('@playwright/test')` directly in spec files — use fixtures instead
 
 ## Acceptance criteria
 
 - [ ] Ticket summary and AC extracted and shown before any code is written
 - [ ] Scenario table presented, grouped by type, with priority and target file
 - [ ] No code written until user confirms approved scenarios
-- [ ] Approved specs follow `login.web.spec.ts` or `login.api.spec.ts` patterns
+- [ ] Approved specs follow `login.web.spec.js` or `login.api.spec.js` patterns
 - [ ] Negative/edge data in `data/web/` or `data/api/` JSON files — no literals in specs
 - [ ] New page objects or client methods follow repo conventions
 - [ ] `npm run lint` passes on all new files

@@ -8,6 +8,173 @@ A modern, scalable, and maintainable end-to-end test automation framework built 
 - Rich reporting with Playwright HTML + Allure attachments
 - MCP + Jira workflow for AI-assisted test case generation
 
+## What was built and why
+
+This repository is a **template for AI-assisted test automation**: runnable Playwright + TypeScript tests (web UI and HTTP API), plus guardrails and prompts so Copilot/Cursor can help without breaking conventions or leaking secrets. The goal is a **repeatable framework** — same patterns for every scenario, same checks before commit, same path from Jira tickets to tests.
+
+### Four layers
+
+| Layer | What was built | Why |
+|-------|----------------|-----|
+| **1. Foundation** | npm project, `@playwright/test`, TypeScript, `playwright.config.ts`, `tsconfig.json`, ESLint, browsers in `.playwright-browsers/`, `.gitignore` | Reliable, typed automation with reproducible browser versions; generated output and secrets stay out of git. |
+| **2. Test framework** | Web POM (`pages/`, `tests/web/`), API clients (`clients/`, `tests/api/`), fixtures/hooks, JSON under `data/`, env via `data/credentials/.env.credentials` | Specs read as scenarios; UI and HTTP details change in one place; public demo apps ([the-internet](https://the-internet.herokuapp.com/login), [DummyJSON](https://dummyjson.com)) let anyone run tests after cloning. |
+| **3. Quality & security** | ESLint + Playwright lint rules, Husky pre-commit, Gitleaks, `getRequiredEnv()`, `test:verify` | Catch bad tests and accidental token commits before CI; credentials never hardcoded in source. |
+| **4. AI customization** | [`.github/`](.github/README.md) — `copilot-instructions.md`, agent, prompts, skills, guardrails, specifications | AI sessions start with your POM/fixture/security rules instead of generic Playwright snippets. |
+
+### How the layers connect
+
+```mermaid
+flowchart TB
+  subgraph human["You / CI"]
+    Run["npm run test:verify"]
+  end
+  subgraph tests["Test code"]
+    Web["tests/web + pages/"]
+    API["tests/api + clients/"]
+  end
+  subgraph config["Config & data"]
+    PW["playwright.config.ts"]
+    Env[".env.credentials"]
+    Data["data/*.json"]
+  end
+  subgraph quality["Quality"]
+    Lint["ESLint"]
+    GL["Gitleaks"]
+    Husky["Husky pre-commit"]
+  end
+  subgraph ai[".github AI layer"]
+    Copilot["copilot-instructions"]
+    Agent["ai-test-engineer"]
+    Skills["skills + prompts"]
+  end
+  ai --> tests
+  Env --> PW
+  Data --> tests
+  PW --> Web
+  PW --> API
+  tests --> Run
+  Husky --> Lint
+  Husky --> GL
+```
+
+### Where to read more
+
+| Topic | Section |
+|-------|---------|
+| Bootstrap commands and `.gitignore` rationale | [Foundation setup — what was done and why](#foundation-setup--what-was-done-and-why) |
+| Web/API tests, reporting, MCP + Jira | [What is implemented](#what-is-implemented) |
+| Copilot prompts, skills, and guardrails | [`.github/README.md`](.github/README.md) |
+
+---
+
+## Foundation setup — what was done and why
+
+This section records how the repository was bootstrapped and the reasoning behind each choice. Use it as a checklist when reproducing the project on a new machine or explaining the template to a team.
+
+### 1. npm project and core toolchain
+
+| Step | Command / artifact | Why |
+|------|-------------------|-----|
+| Initialize Node project | `npm init -y` | Creates `package.json` so dependencies, scripts, and lockfile are versioned and reproducible. |
+| Install Playwright test runner | `npm install -D @playwright/test` | Official test runner with built-in assertions, fixtures, parallel runs, and browser automation. |
+| Install TypeScript | `npm install -D typescript` | Static typing for page objects, API clients, and shared utilities — catches mistakes before runtime. |
+| Install Node types | `npm install -D @types/node` | Type definitions for `process`, `path`, and other Node APIs used in config and `utils/env.ts`. |
+| Install browsers | `npm run pw:install` (see below) | Playwright ships browser binaries separately from npm packages; they must be downloaded once per environment. |
+
+**Commands used during initial bootstrap:**
+
+```bash
+npm init -y
+npm install -D @playwright/test typescript @types/node
+npm run pw:install
+```
+
+On Linux CI or minimal images, OS libraries may also be required:
+
+```bash
+npx playwright install-deps
+```
+
+### 2. Configuration files
+
+| File | What it does | Why |
+|------|--------------|-----|
+| `playwright.config.ts` | Test directory, timeouts, reporters, and browser/API projects | Single source of truth for how tests run locally and in CI. Loads credentials via `dotenv` so URLs and secrets stay out of code. |
+| `tsconfig.json` | TypeScript compiler options for tests and config | Enables strict checking and IDE autocomplete across `tests/`, `pages/`, `clients/`, and `utils/`. |
+| `eslint.config.js` | Lint rules for TS/JS and Playwright tests | Catches common test mistakes (e.g. missing `await`, discouraged patterns) before commit. |
+| `.env.example` | Documented template for required variables | Safe to commit; developers copy values into the gitignored credentials file. |
+| `.gitignore` | Excludes generated and sensitive paths | Prevents `node_modules`, reports, browser caches, and secrets from entering git history. |
+
+### 3. Local browser install path
+
+Browsers are installed into `.playwright-browsers/` (project-local) via:
+
+```bash
+PLAYWRIGHT_BROWSERS_PATH=.playwright-browsers npx playwright install --force chromium firefox
+```
+
+**Why:** Pinning browsers inside the repo folder makes installs predictable across machines and CI, avoids clashes with a user-global Playwright cache, and keeps the path explicit in `package.json` (`pw:install`). The directory is gitignored because binaries are large and platform-specific.
+
+### 4. `.gitignore` — what is ignored and why
+
+| Pattern | Why ignore |
+|---------|------------|
+| `node_modules/` | Restored with `npm install`; never commit dependencies. |
+| `/test-results/`, `/playwright-report/`, `/blob-report/` | Generated per run; would bloat the repo and cause merge noise. |
+| `.playwright-browsers/`, `.playwright-mcp/` | Downloaded browsers and MCP session output; machine-specific. |
+| `allure-results/`, `allure-report/` | Allure output is regenerated from test runs. |
+| `data/credentials/.env.credentials` | Holds real usernames, passwords, and API tokens — must not be committed. |
+| `.env` | Catch-all for local env overrides. |
+| `dist/`, `*.tsbuildinfo` | Build artifacts if TypeScript emit is added later. |
+| `.DS_Store`, `.idea/`, most of `.vscode/` | OS/IDE noise; optional `!.vscode/extensions.json` keeps recommended extensions shareable. |
+
+### 5. Dependencies beyond Playwright (and why)
+
+| Package | Role | Why included |
+|---------|------|--------------|
+| `dotenv` | Loads `data/credentials/.env.credentials` | Keeps secrets and environment-specific URLs out of source code; supports `ENV_FILE` override. |
+| `allure-playwright` + `allure-commandline` | Allure reporter and CLI | Step-level reporting, attachments, and history-friendly dashboards beyond Playwright HTML. |
+| `eslint`, `@eslint/js`, `typescript-eslint`, `eslint-plugin-playwright`, `globals` | Lint pipeline | Enforces consistent style and Playwright best practices; runs in Husky pre-commit. |
+| `husky` | Git hooks | Runs lint and secret scan automatically before each commit. |
+| `gitleaks` | Secret scanner | Blocks accidental commit of tokens/passwords detected in staged files. |
+
+### 6. Test architecture layers (built on the foundation)
+
+After bootstrap, the template was extended with a layered layout so web UI, API, and AI-assisted workflows stay separated:
+
+```text
+fixtures/   → import test/expect here (web vs API hooks)
+hooks/      → beforeEach/afterEach behaviour (screenshots, Allure metadata)
+pages/      → UI selectors and actions (POM)
+clients/    → HTTP calls and response typing
+tests/      → scenarios and assertions only
+data/       → JSON fixtures + gitignored credentials
+utils/      → env loading, API request/response attachments
+```
+
+**Why this split:** Specs stay readable as Given/When/Then-style flows; UI and HTTP details change in one place; fixtures avoid duplicating hook setup; credentials and fixture data stay out of git.
+
+### 7. Quality gates added after bootstrap
+
+| Mechanism | What runs | Why |
+|-----------|-----------|-----|
+| Husky `.husky/pre-commit` | `npm run lint` then `gitleaks detect` | Fail fast on style issues and leaked secrets before they reach the remote. |
+| `npm run test:verify` | Lint + full test suite | CI-friendly single command for merge confidence. |
+| `npm run test:verify:full` | Lint + browser reinstall + tests | Use when browsers or Playwright version changed. |
+
+### 8. What you run after cloning
+
+```bash
+npm install
+npm run prepare          # register Husky hooks (once)
+npm run pw:install       # download Chromium + Firefox into .playwright-browsers/
+cp .env.example data/credentials/.env.credentials
+# edit data/credentials/.env.credentials with real values
+npm run test:verify      # lint + run all projects
+```
+
+---
+
 ## What is implemented
 
 ### Web automation (Page Object Model)
@@ -100,6 +267,8 @@ Optional but useful:
 - **VS Code / Cursor** — install the [Playwright Test for VS Code](https://marketplace.visualstudio.com/items?itemName=ms-playwright.playwright) extension
 
 ## Setup
+
+For the rationale behind each step, see [Foundation setup — what was done and why](#foundation-setup--what-was-done-and-why).
 
 ```bash
 # 1. Install dependencies

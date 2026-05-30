@@ -1,6 +1,6 @@
 ---
 Name: api-test-development
-Description: Implement or maintain HTTP API tests in this Playwright + TypeScript repo. Use when adding or changing tests/api/ specs, clients/ API clients, or data/api/ fixtures.
+Description: Implement or maintain HTTP API tests in this Playwright + JavaScript repo. Use when adding or changing tests/api/ specs, clients/ API clients, or data/api/ fixtures.
 ---
 
 # 🔌 Skill: API test development
@@ -13,33 +13,33 @@ Description: Implement or maintain HTTP API tests in this Playwright + TypeScrip
 
 ## Workflow
 
-1. **Read existing files first** — `tests/api/`, `clients/`, `data/api/`, `fixtures/apiTest.ts`, `hooks/ApiHooks.ts`
+1. **Read existing files first** — `tests/api/`, `clients/`, `data/api/`, `fixtures/apiTest.js`, `hooks/ApiHooks.js`
 2. **Check for duplicate coverage** — do not add a scenario already present in another spec
-3. **Add or extend the client** — new endpoint → new method on the relevant `clients/*ApiClient.ts`
-4. **Write the spec** — follows `tests/api/login.api.spec.ts` and `tests/api/user.crud.api.spec.ts` patterns
+3. **Add or extend the client** — new endpoint → new method on the relevant `clients/*ApiClient.js`
+4. **Write the spec** — follows `tests/api/login.api.spec.js` and `tests/api/user.crud.api.spec.js` patterns
 5. **Add test data** — negative and edge payloads go in `data/api/<name>.json`; no literals in specs
-6. **Validate** — run `npm run test:api` or a targeted `npx playwright test tests/api/<file>.api.spec.ts`; report pass/fail
+6. **Validate** — run `npm run test:api` or a targeted `npx playwright test tests/api/<file>.api.spec.js`; report pass/fail
 
-## Client rules (`clients/*ApiClient.ts`)
+## Client rules (`clients/*ApiClient.js`)
 
-- Every HTTP call must go through `callApiWithReport` from `utils/apiReporter.ts`
-- Constructor accepts `{ request: APIRequestContext, testInfo: TestInfo }`
-- Each method returns `Promise<ApiCallResult>` (`{ response, body, metrics }`)
+- Every HTTP call must go through `callApiWithReport` from `utils/apiReporter.js`
+- Constructor accepts `{ request, testInfo }`
+- Each method returns a promise resolving to `{ response, body, metrics }`
 - Provide a descriptive `name` string per call (e.g. `'api-login'`, `'api-user-create'`) — this names the attached `<name>-request.json` and `<name>-response.json` artefacts
 - Do not inline `request.post` / `request.get` in specs
+- Export the class with `module.exports = { MyApiClient };`
 
-```ts
+```js
 // Pattern — matches AuthApiClient and UserApiClient
-export class MyApiClient {
-  private readonly request: APIRequestContext;
-  private readonly testInfo: TestInfo;
+const { callApiWithReport } = require('../utils/apiReporter');
 
-  constructor({ request, testInfo }: { request: APIRequestContext; testInfo: TestInfo }) {
+class MyApiClient {
+  constructor({ request, testInfo }) {
     this.request = request;
     this.testInfo = testInfo;
   }
 
-  async myAction(data: Record<string, unknown>): Promise<ApiCallResult> {
+  async myAction(data) {
     return callApiWithReport({
       requestContext: this.request,
       method: 'POST',
@@ -51,24 +51,26 @@ export class MyApiClient {
     });
   }
 }
+
+module.exports = { MyApiClient };
 ```
 
-## Spec rules (`tests/api/*.api.spec.ts`)
+## Spec rules (`tests/api/*.api.spec.js`)
 
-- Import `test`, `expect` from `fixtures/apiTest.ts` — not from `@playwright/test`
+- Import `test`, `expect` from `fixtures/apiTest.js` — not from `@playwright/test`
 - Instantiate the client per test: `new MyApiClient({ request, testInfo })`
-- Load credentials with `getRequiredEnv()` from `utils/env.ts`
+- Load credentials with `getRequiredEnv()` from `utils/env.js`
 - Load negative/edge payloads from `data/api/<name>.json`
-- Standard assertions: `response.ok()`, `response.status()`, body fields as `body as Record<string, unknown>`
+- Standard assertions: `response.ok()`, `response.status()`, body fields
 - Optional performance assertion: `metrics.finalAttemptDurationMs` vs `Number(process.env.API_MAX_RESPONSE_TIME_MS ?? 4000)`
 - Use `test.describe.serial` only when tests have an explicit ordering dependency (e.g. CRUD create → read → update → delete)
 
-```ts
-// Pattern — matches login.api.spec.ts
-import { test, expect } from '../../fixtures/apiTest';
-import { MyApiClient } from '../../clients/MyApiClient';
-import { getRequiredEnv } from '../../utils/env';
-import apiData from '../../data/api/my-feature.json';
+```js
+// Pattern — matches login.api.spec.js
+const { test, expect } = require('../../fixtures/apiTest');
+const { MyApiClient } = require('../../clients/MyApiClient');
+const { getRequiredEnv } = require('../../utils/env');
+const apiData = require('../../data/api/my-feature.json');
 
 const maxResponseTimeMs = Number(process.env.API_MAX_RESPONSE_TIME_MS ?? 4000);
 
@@ -77,18 +79,16 @@ test.describe('API My Feature - positive and negative scenarios', () => {
     const client = new MyApiClient({ request, testInfo });
     const { response, body, metrics } = await client.myAction({ key: getRequiredEnv('MY_VALUE') });
 
-    const responseBody = body as Record<string, unknown>;
     expect(response.ok()).toBeTruthy();
     expect(response.status()).toBe(200);
-    expect(responseBody.id).toBeTruthy();
+    expect(body.id).toBeTruthy();
     expect(metrics.finalAttemptDurationMs).toBeLessThan(maxResponseTimeMs);
   });
 
   test('Negative: action fails with invalid input', async ({ request }, testInfo) => {
     const client = new MyApiClient({ request, testInfo });
-    const { response, body, metrics } = await client.myAction({ key: apiData.negative.invalidValue });
+    const { response, metrics } = await client.myAction({ key: apiData.negative.invalidValue });
 
-    const responseBody = body as Record<string, unknown>;
     expect(response.ok()).toBeFalsy();
     expect(response.status()).toBe(apiData.negative.expectedStatus);
     expect(metrics.finalAttemptDurationMs).toBeLessThan(maxResponseTimeMs);
@@ -98,9 +98,9 @@ test.describe('API My Feature - positive and negative scenarios', () => {
 
 ## Reporting
 
-`ApiHooks` (registered via `fixtures/apiTest.ts`) automatically attaches `api-test-start.json` and `api-test-end.json` to every test. `callApiWithReport` attaches `<name>-request.json` and `<name>-response.json`. Do not duplicate this in specs.
+`ApiHooks` (registered via `fixtures/apiTest.js`) automatically attaches `api-test-start.json` and `api-test-end.json` to every test. `callApiWithReport` attaches `<name>-request.json` and `<name>-response.json`. Do not duplicate this in specs.
 
-`utils/apiReporter.ts` redacts passwords, tokens, `Authorization` headers, and Bearer strings before attaching — do not log raw sensitive values anywhere else.
+`utils/apiReporter.js` redacts passwords, tokens, `Authorization` headers, and Bearer strings before attaching — do not log raw sensitive values anywhere else.
 
 ## Security
 
@@ -112,7 +112,7 @@ test.describe('API My Feature - positive and negative scenarios', () => {
 ## Done when
 
 - [ ] New or changed client method uses `callApiWithReport`
-- [ ] Spec imports from `fixtures/apiTest.ts`
+- [ ] Spec imports from `fixtures/apiTest.js`
 - [ ] Negative/edge data in `data/api/*.json`, not inline in specs
 - [ ] `npm run lint` passes
 - [ ] `npm run test:api` (or targeted file) passes and results are reported

@@ -4,6 +4,37 @@ This folder contains the GitHub Copilot customisation layer for the **Playwright
 
 Think of it as a team handbook that AI reads so you don't have to repeat your standards in every prompt.
 
+For the full repository (tests, tooling, CI-style verify scripts), see the root [`README.md`](../README.md).
+
+---
+
+## What was built and why
+
+Without this layer, every AI chat starts from zero: wrong fixture imports, secrets in specs, or tests that ignore your folder layout. **`.github/` teaches the AI the same standards the root README teaches humans.**
+
+| Built | Why |
+|-------|-----|
+| **`copilot-instructions.md`** | Always-on baseline: TestPilot persona, POM rules, fixture imports, `getRequiredEnv()`, lint/test commands. Copilot loads it automatically — you do not invoke it manually. |
+| **`agents/ai-test-engineer.agent.md`** | Specialist agent for test work: routes web vs API vs `.github/` tasks and points to the right skill. |
+| **`prompts/`** | Repeatable workflows (Jira → specs, HTML → page object, locator help, refactor) so prompts stay consistent across the team. |
+| **`skills/`** | Deep playbooks (API tests, page objects, E2E delivery, security review, maintenance) the agent can follow for multi-step work. |
+| **`specifications/`** | Acceptance criteria for prompt outputs — update with prompts when expected results change. |
+| **`guardrails/`** | Active security contract + reference doc; keeps AI-generated code aligned with no-secrets-in-source policy. |
+| **`rules/`** + **`pull_request_template.md`** | Consistent commit messages, issue titles, and PR descriptions without retyping templates. |
+
+### How this fits the rest of the repo
+
+```text
+Root repo (../)                    .github/ (this folder)
+─────────────────                  ─────────────────────
+Playwright tests          ←──rules──  copilot-instructions.md
+pages/, clients/          ←──skills── api-test-development, browser-page-objects, …
+fixtures/, hooks/         ←──agent──  ai-test-engineer
+.env.credentials (gitignored) ←──guardrails── security-guardrails.md
+```
+
+**Typical flow:** Jira ticket → `jira-to-feature` prompt (with Playwright MCP) → scenarios → `@ai-test-engineer` implements using skills → `npm run test:verify` before merge.
+
 ---
 
 ## 📁 Folder structure
@@ -42,10 +73,10 @@ Think of it as a team handbook that AI reads so you don't have to repeat your st
 │   └── test-maintenance-and-quality/SKILL.md
 │
 └── specifications/
-    ├── FindLocator.spec.md
-    ├── Jira2Feature.spec.md
+    ├── findLocator.spec.md
+    ├── jira2Feature.spec.md
     ├── pageObjectFromHtmlSnippet.spec.md
-    └── Refactor.spec.md
+    └── refactor.spec.md
 ```
 
 ---
@@ -86,8 +117,8 @@ Seven self-contained procedures loaded on demand by the agent. Each has a `name`
 | Skill | Purpose |
 |-------|---------|
 | `feature-authoring` | Ticket → scenario table with approval gate before any code is written |
-| `api-test-development` | Add or maintain `tests/api/` specs and `clients/*ApiClient.ts` |
-| `browser-page-objects` | Create or update `pages/*Page.ts` following `LoginPage.ts` conventions |
+| `api-test-development` | Add or maintain `tests/api/` specs and `clients/*ApiClient.js` |
+| `browser-page-objects` | Create or update `pages/*Page.js` following `LoginPage.js` conventions |
 | `mobile-test-development` | Playwright `devices[...]` project setup for responsive coverage |
 | `end-to-end-test-delivery` | Orchestrate the above for cross-layer (web + API) requirements |
 | `test-maintenance-and-quality` | Fix flakes, repair locators, remove duplication and code smell |
@@ -107,8 +138,8 @@ Four on-demand prompts you run yourself in Copilot Chat. Each has `mode: agent` 
 
 | Prompt | What you provide | What you get |
 |--------|-----------------|--------------|
-| `generate-page-object` | Page name, URL path, HTML snippet or element list | A complete `pages/<Name>Page.ts` matching `LoginPage.ts` conventions |
-| `find-locator` | HTML snippet or element description | Best Playwright locator + `readonly Locator` field declaration + red flags |
+| `generate-page-object` | Page name, URL path, HTML snippet or element list | A complete `pages/<Name>Page.js` matching `LoginPage.js` conventions |
+| `find-locator` | HTML snippet or element description | Best Playwright locator + locator field declaration + red flags |
 | `refactor` | File path(s) + optional focus area | Refactored file, change summary, lint notes |
 | `jira-to-feature` | Jira ticket URL or key | Scenario table (Positive/Negative/Edge), then implementation of approved ones |
 
@@ -146,9 +177,9 @@ Each prompt links to a specification that defines inputs, outputs, rules, and ac
 | Spec | Backs |
 |------|-------|
 | `pageObjectFromHtmlSnippet.spec.md` | `generate-page-object.prompt.md` |
-| `FindLocator.spec.md` | `find-locator.prompt.md` |
-| `Refactor.spec.md` | `refactor.prompt.md` |
-| `Jira2Feature.spec.md` | `jira-to-feature.md` |
+| `findLocator.spec.md` | `find-locator.prompt.md` |
+| `refactor.spec.md` | `refactor.prompt.md` |
+| `jira2Feature.spec.md` | `jira-to-feature.md` |
 
 > These are included via `#file:` in prompt frontmatter. Not invoked directly.
 
@@ -218,7 +249,7 @@ Switch Copilot Chat to **Agent mode** (dropdown in the chat input bar), then:
 
 ```
 @ai-test-engineer Add positive and negative API tests for the checkout endpoint
-@ai-test-engineer Fix the flaky logout test in login.web.spec.ts
+@ai-test-engineer Fix the flaky logout test in login.web.spec.js
 @ai-test-engineer Use the browser-page-objects skill to add a CheckoutPage
 ```
 
@@ -249,7 +280,7 @@ HTML: <input id="email" type="email"> <button type="submit">Pay now</button>
 ```
 #file:.github/prompts/refactor.prompt.md
 
-tests/web/login.web.spec.ts — steps are missing test.step wrappers
+tests/web/login.web.spec.js — steps are missing test.step wrappers
 ```
 
 **Option 3 — Jira prompt (requires MCP server)**

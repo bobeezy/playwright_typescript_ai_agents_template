@@ -2,14 +2,14 @@
 
 ## Project overview
 
-This repository is a **Playwright Test + TypeScript** automation framework for:
+This repository is a **Playwright Test + JavaScript** automation framework for:
 
 - **Web UI** — Page Object Model, browser projects (`web-chromium`, `web-firefox`)
-- **HTTP/HTTPS API** — typed API clients, dedicated `api` project
+- **HTTP/HTTPS API** — API clients, dedicated `api` project
 
-Stack: `@playwright/test`, TypeScript, custom fixtures, hooks for reporting, ESLint (`eslint-plugin-playwright`), Playwright HTML + Allure reports.
+Stack: `@playwright/test`, JavaScript (CommonJS), custom fixtures, hooks for reporting, ESLint (`eslint-plugin-playwright`), Playwright HTML + Allure reports.
 
-**Out of scope for this repo** (do not generate or suggest): Gherkin/Cucumber/SpecFlow/Reqnroll, C# tests, Selenium/WebDriver, Appium, native mobile drivers, BDD step-definition layers, or feature files. Use Playwright specs (`.spec.ts`) instead of scenario files.
+**Out of scope for this repo** (do not generate or suggest): Gherkin/Cucumber/SpecFlow/Reqnroll, TypeScript, C# tests, Selenium/WebDriver, Appium, native mobile drivers, BDD step-definition layers, or feature files. Use Playwright specs (`.spec.js`) instead of scenario files.
 
 ## Copilot persona
 
@@ -25,7 +25,7 @@ Do not let the persona override the technical, security, or repository standards
 - Do not put sensitive values in specs, page objects, fixtures, clients, hooks, config, documentation, traces, screenshots, videos, reports, or chat responses.
 - Do not automate destructive actions against production systems or real customer data.
 - Do not bypass branch protection, PR reviews, CODEOWNERS, CI, secret scanning, or repository governance.
-- Use `getRequiredEnv()` from `utils/env.ts`, `.env.example`, and `data/credentials/.env.credentials` (gitignored) — never hardcode credentials in source.
+- Use `getRequiredEnv()` from `utils/env.js`, `.env.example`, and `data/credentials/.env.credentials` (gitignored) — never hardcode credentials in source.
 - `WebHooks` redacts credential fields in the DOM before screenshots; preserve that pattern when adding new sensitive inputs.
 - Stop and ask for human confirmation when a request could affect production, privileged access, authentication flows, regulated data, or governance assets.
 
@@ -35,27 +35,27 @@ Inspect existing files before adding or changing code. Follow these paths:
 
 | Area | Path | Notes |
 |------|------|--------|
-| Web specs | `tests/web/*.web.spec.ts` | Import from `fixtures/webTest.ts` |
-| API specs | `tests/api/*.api.spec.ts` | Import from `fixtures/apiTest.ts` |
-| Page objects | `pages/*Page.ts` | UI actions and locators only |
-| API clients | `clients/*ApiClient.ts` | HTTP via `APIRequestContext` + `utils/apiReporter.ts` |
-| Fixtures | `fixtures/webTest.ts`, `fixtures/apiTest.ts` | Extend base `test`; register hooks |
-| Hooks | `hooks/WebHooks.ts`, `hooks/ApiHooks.ts` | Attachments and redaction |
-| Env helpers | `utils/env.ts` | `getRequiredEnv(name)` |
-| API reporting | `utils/apiReporter.ts` | `callApiWithReport` for all client calls |
+| Web specs | `tests/web/*.web.spec.js` | Import from `fixtures/webTest.js` |
+| API specs | `tests/api/*.api.spec.js` | Import from `fixtures/apiTest.js` |
+| Page objects | `pages/*Page.js` | UI actions and locators only |
+| API clients | `clients/*ApiClient.js` | HTTP via `APIRequestContext` + `utils/apiReporter.js` |
+| Fixtures | `fixtures/webTest.js`, `fixtures/apiTest.js` | Extend base `test`; register hooks |
+| Hooks | `hooks/WebHooks.js`, `hooks/ApiHooks.js` | Attachments and redaction |
+| Env helpers | `utils/env.js` | `getRequiredEnv(name)` |
+| API reporting | `utils/apiReporter.js` | `callApiWithReport` for all client calls |
 | Test data | `data/web/*.json`, `data/api/*.json` | Deterministic negative/edge values |
-| Credentials | `data/credentials/.env.credentials` | Loaded via `ENV_FILE` or default in `playwright.config.ts` |
-| Config | `playwright.config.ts` | Projects, timeouts, reporters |
+| Credentials | `data/credentials/.env.credentials` | Loaded via `ENV_FILE` or default in `playwright.config.js` |
+| Config | `playwright.config.js` | Projects, timeouts, reporters |
 
-There is **no** `tests/mobile/` tree today. For responsive or mobile-browser coverage, add a new Playwright **project** in `playwright.config.ts` using `devices[...]` from `@playwright/test` — not Appium or a separate mobile framework.
+There is **no** `tests/mobile/` tree today. For responsive or mobile-browser coverage, add a new Playwright **project** in `playwright.config.js` using `devices[...]` from `@playwright/test` — not Appium or a separate mobile framework.
 
 ## Architecture rules
 
-1. **Web specs** orchestrate flows; **page objects** own locators and UI actions; **assertions** stay in specs (including `expect` on page object `Locator` fields when appropriate).
+1. **Web specs** orchestrate flows; **page objects** own locators and UI actions; **assertions** stay in specs (including `expect` on page object locator fields when appropriate).
 2. **API specs** call **clients** only; clients use `callApiWithReport` and return `{ response, body, metrics }`.
 3. **Never** import `test` / `expect` directly from `@playwright/test` in spec files — use `fixtures/webTest` or `fixtures/apiTest`.
 4. **Do not** duplicate hook logic (screenshots, API start/end attachments) inside individual tests.
-5. Reuse naming: `*.web.spec.ts`, `*.api.spec.ts`, `*Page.ts`, `*ApiClient.ts`.
+5. Reuse naming: `*.web.spec.js`, `*.api.spec.js`, `*Page.js`, `*ApiClient.js`.
 
 ## Playwright standards
 
@@ -86,10 +86,10 @@ There is **no** `tests/mobile/` tree today. For responsive or mobile-browser cov
 
 Example spec shape:
 
-```ts
-import { test, expect } from '../../fixtures/webTest';
-import { LoginPage } from '../../pages/LoginPage';
-import { getRequiredEnv } from '../../utils/env';
+```js
+const { test, expect } = require('../../fixtures/webTest');
+const { LoginPage } = require('../../pages/LoginPage');
+const { getRequiredEnv } = require('../../utils/env');
 
 const validUsername = getRequiredEnv('WEB_LOGIN_USERNAME');
 const validPassword = getRequiredEnv('WEB_LOGIN_PASSWORD');
@@ -118,37 +118,45 @@ test.describe('Web Login - positive and negative scenarios', () => {
 
 ## Page object patterns
 
-Match `pages/LoginPage.ts`:
+Match `pages/LoginPage.js`:
 
-- `constructor(page: Page)` with `readonly page` and `readonly` `Locator` fields
+- `constructor(page)` with `this.page` and locator fields assigned in the constructor
 - Navigation helpers (`goto`, `getLoginPath`)
-- User-facing methods (`login`, `getFlashMessage`) — no raw `test` / `expect` imports required in page objects unless the repo already uses assertion helpers there
+- User-facing methods (`login`, `getFlashMessage`) — no raw `test` / `expect` imports required in page objects
 - Expose locators specs need for assertions (`flashMessage`, `logoutButton`)
+- Export the class at the bottom: `module.exports = { LoginPage };`
 
-```ts
-import { Page, Locator } from '@playwright/test';
-
-export class LoginPage {
-  readonly page: Page;
-  readonly usernameInput: Locator;
-  readonly loginButton: Locator;
-
-  constructor(page: Page) {
+```js
+class LoginPage {
+  constructor(page) {
     this.page = page;
     this.usernameInput = page.locator('#username');
+    this.passwordInput = page.locator('#password');
     this.loginButton = page.locator('button[type="submit"]');
+    this.flashMessage = page.locator('#flash');
+    this.logoutButton = page.locator('a.button.secondary.radius');
   }
 
-  async goto(): Promise<void> {
+  getLoginPath() {
+    return '/login';
+  }
+
+  async goto() {
     await this.page.goto(this.getLoginPath());
   }
 
-  async login(username: string, password: string): Promise<void> {
+  async login(username, password) {
     await this.usernameInput.fill(username);
     await this.passwordInput.fill(password);
     await this.loginButton.click();
   }
+
+  async getFlashMessage() {
+    return (await this.flashMessage.textContent())?.trim() ?? '';
+  }
 }
+
+module.exports = { LoginPage };
 ```
 
 ## API test patterns
@@ -161,10 +169,10 @@ export class LoginPage {
 
 Example:
 
-```ts
-import { test, expect } from '../../fixtures/apiTest';
-import { AuthApiClient } from '../../clients/AuthApiClient';
-import { getRequiredEnv } from '../../utils/env';
+```js
+const { test, expect } = require('../../fixtures/apiTest');
+const { AuthApiClient } = require('../../clients/AuthApiClient');
+const { getRequiredEnv } = require('../../utils/env');
 
 test('Positive: login returns access token', async ({ request }, testInfo) => {
   const authClient = new AuthApiClient({ request, testInfo });
@@ -174,15 +182,15 @@ test('Positive: login returns access token', async ({ request }, testInfo) => {
   });
 
   expect(response.ok()).toBeTruthy();
-  expect((body as Record<string, unknown>).accessToken).toBeTruthy();
+  expect(body.accessToken).toBeTruthy();
 });
 ```
 
-New endpoints: add methods on `clients/*ApiClient.ts` using `callApiWithReport`; do not inline `request.post` in specs.
+New endpoints: add methods on `clients/*ApiClient.js` using `callApiWithReport`; do not inline `request.post` in specs.
 
 ## Configuration and environment
 
-- `playwright.config.ts` loads dotenv from `process.env.ENV_FILE ?? 'data/credentials/.env.credentials'`
+- `playwright.config.js` loads dotenv from `process.env.ENV_FILE || 'data/credentials/.env.credentials'`
 - Projects: `web-chromium`, `web-firefox` (`testDir: ./tests/web`), `api` (`testDir: ./tests/api`)
 - Reporters: `list`, `html`, `allure-playwright`
 - Run alternate env: `ENV_FILE=data/credentials/.env.staging.credentials npx playwright test`
@@ -198,7 +206,7 @@ New endpoints: add methods on `clients/*ApiClient.ts` using `callApiWithReport`;
 | `npm run lint` / `npm run lint:fix` | ESLint (required before commit via Husky) |
 | `npm run report:playwright` | Open HTML report |
 | `npm run report:allure` | Generate and open Allure report |
-| `npx playwright test tests/web/login.web.spec.ts` | Single file |
+| `npx playwright test tests/web/login.web.spec.js` | Single file |
 | `npx playwright test -g "Positive: user logs in"` | By title |
 
 ## AI-assisted workflow (Jira / MCP)

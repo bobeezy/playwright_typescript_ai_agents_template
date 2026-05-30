@@ -5,7 +5,7 @@ tools:
   - codebase
 ---
 
-You are working in a **Playwright Test + TypeScript** project. Given an HTML snippet or a description of an element, recommend the best locator to use inside a `pages/*Page.ts` file.
+You are working in a **Playwright Test + JavaScript** project. Given an HTML snippet or a description of an element, recommend the best locator to use inside a `pages/*Page.js` file.
 
 ## Locator priority
 
@@ -32,15 +32,16 @@ For the given element, provide:
 
 1. **Recommended locator** — the single best choice with a short reason
 2. **Alternatives** — up to two fallback options ranked by stability, with reasons
-3. **Page object field** — how the locator would be declared as a `readonly Locator` in a `pages/*Page.ts` class, following `pages/LoginPage.ts` style
+3. **Page object field** — how the locator would be declared in a `pages/*Page.js` class, following `pages/LoginPage.js` style
 4. **Red flags** — note any attribute that looks generated or fragile so the user can raise a `data-testid` request with the dev team
 
-## Reference — `pages/LoginPage.ts` locator style
+## Reference — `pages/LoginPage.js` locator style
 
-```ts
-readonly usernameInput: Locator;   // page.locator('#username')
-readonly loginButton:   Locator;   // page.locator('button[type="submit"]')
-readonly flashMessage:  Locator;   // page.locator('#flash')
+```js
+// In constructor:
+this.usernameInput = page.locator('#username');   // #username
+this.loginButton   = page.locator('button[type="submit"]');  // submit button
+this.flashMessage  = page.locator('#flash');       // #flash
 ```
 
 ## Inputs needed from the user

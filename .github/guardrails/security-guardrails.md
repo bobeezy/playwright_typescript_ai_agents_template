@@ -1,10 +1,10 @@
 # 🔒 Security guardrails
 
-Behavioural security contract for Copilot chat, custom agents, skills, and prompts in this **Playwright + TypeScript** repository.
+Behavioural security contract for Copilot chat, custom agents, skills, and prompts in this **Playwright + JavaScript** repository.
 
 **Summary** lives in [`../copilot-instructions.md`](../copilot-instructions.md) (Security guardrails section). This document adds repo-specific detail. Do not weaken either file; update both together when rules change.
 
-Applies to everyone generating or editing: `tests/`, `pages/`, `clients/`, `fixtures/`, `hooks/`, `utils/`, `data/`, `playwright.config.ts`, and `.github/` assets.
+Applies to everyone generating or editing: `tests/`, `pages/`, `clients/`, `fixtures/`, `hooks/`, `utils/`, `data/`, `playwright.config.js`, and `.github/` assets.
 
 ---
 
@@ -22,15 +22,15 @@ Never generate, reveal, persist, copy, or log:
 
 | Area | Examples |
 |------|----------|
-| Source | `*.spec.ts`, `pages/`, `clients/`, `fixtures/`, `hooks/`, `utils/` |
-| Config | `playwright.config.ts`, committed `.env` files |
+| Source | `*.spec.js`, `pages/`, `clients/`, `fixtures/`, `hooks/`, `utils/` |
+| Config | `playwright.config.js`, committed `.env` files |
 | Data | `data/web/*.json`, `data/api/*.json` (use placeholders only) |
 | Docs / AI assets | `README.md`, `.github/**`, chat replies |
 | Test output | HTML report, `allure-results/`, traces, videos, screenshots, `testInfo` attachments |
 
 **Do instead:**
 
-- Read credentials with `getRequiredEnv()` from `utils/env.ts`
+- Read credentials with `getRequiredEnv()` from `utils/env.js`
 - Document variable names in `.env.example`; keep real values in `data/credentials/.env.credentials` (gitignored)
 - Use dummy or documented public demo accounts (e.g. Herokuapp / DummyJSON samples) in examples
 - Run `gitleaks detect --source .` before commit (Husky pre-commit runs this with `npm run lint`)
@@ -39,10 +39,10 @@ Never generate, reveal, persist, copy, or log:
 
 ## 🌐 Playwright test artefacts
 
-This project retains traces, video, and screenshots on failure (`playwright.config.ts`). Web tests attach screenshots in `WebHooks`.
+This project retains traces, video, and screenshots on failure (`playwright.config.js`). Web tests attach screenshots in `WebHooks`.
 
-- **Before screenshots:** `WebHooks.redactCredentialFields()` clears username/password fields in the DOM — extend `credentialSelectors` in `hooks/WebHooks.ts` when adding new sensitive inputs
-- **API tests:** `utils/apiReporter.ts` attaches request/response metadata — must not include real tokens or passwords in logged bodies; redact or omit sensitive headers and payloads in attachments
+- **Before screenshots:** `WebHooks.redactCredentialFields()` clears username/password fields in the DOM — extend `credentialSelectors` in `hooks/WebHooks.js` when adding new sensitive inputs
+- **API tests:** `utils/apiReporter.js` attaches request/response metadata — must not include real tokens or passwords in logged bodies; redact or omit sensitive headers and payloads in attachments
 - Do not commit `playwright-report/`, `test-results/`, `allure-results/`, or `.playwright-mcp/` session exports with real credentials
 
 ---

@@ -4,7 +4,7 @@
 
 ## Goal
 
-Given a page name, URL path, and HTML snippet (or element descriptions), produce a `pages/<Name>Page.ts` file that matches the conventions of `pages/LoginPage.ts`.
+Given a page name, URL path, and HTML snippet (or element descriptions), produce a `pages/<Name>Page.js` file that matches the conventions of `pages/LoginPage.js`.
 
 ## Inputs
 
@@ -16,16 +16,16 @@ Given a page name, URL path, and HTML snippet (or element descriptions), produce
 
 ## Output
 
-A single file at `pages/<Name>Page.ts` containing:
+A single file at `pages/<Name>Page.js` containing:
 
-1. Imports — `Page`, `Locator` from `@playwright/test`
-2. Class — `export class <Name>Page`
-3. Fields — `readonly page: Page` + one `readonly` `Locator` per interactive or assertable element
-4. Constructor — assigns all locators using `page.locator(...)` or semantic locators
-5. `getPath(): string` — returns the URL path
-6. `async goto(): Promise<void>` — navigates to `getPath()`
-7. Action methods — user-facing (e.g. `fillSearch`, `clickSave`); no raw locators exposed to specs
-8. Feedback helpers — `get<Text>(): Promise<string>` for visible text the spec needs to assert on
+1. Class — `class <Name>Page`
+2. Constructor — `constructor(page)` that assigns `this.page = page` and all locators
+3. Fields — `this.<name> = page.locator(...)` per interactive or assertable element
+4. `getPath()` — returns the URL path
+5. `async goto()` — navigates to `getPath()`
+6. Action methods — user-facing (e.g. `fillSearch`, `clickSave`); no raw locators exposed to specs
+7. Feedback helpers — `async get<Text>()` for visible text the spec needs to assert on
+8. Export — `module.exports = { <Name>Page };` at the bottom
 
 ## Locator rules
 
@@ -40,19 +40,20 @@ A single file at `pages/<Name>Page.ts` containing:
 
 ## Constraints
 
-- No `import { test, expect }` — assertions stay in specs, not page objects
+- No `require` of `test` or `expect` — assertions stay in specs, not page objects
 - No credentials, passwords, or test data literals
 - No `page.waitForTimeout()` calls
 - No logic that belongs in a fixture or hook
-- New sensitive input fields (password, token) must be added to `credentialSelectors` in `hooks/WebHooks.ts`
+- New sensitive input fields (password, token) must be added to `credentialSelectors` in `hooks/WebHooks.js`
 
 ## Acceptance criteria
 
-- [ ] File saved at `pages/<Name>Page.ts`
-- [ ] All fields are `readonly page: Page` and `readonly <name>: Locator`
-- [ ] Constructor assigns all locators; no `page.locator(...)` calls inside action methods
+- [ ] File saved at `pages/<Name>Page.js`
+- [ ] Constructor assigns `this.page` and all locator fields
+- [ ] No `page.locator(...)` calls inside action methods — all locators are constructor fields
 - [ ] `goto()` calls `this.page.goto(this.getPath())`
 - [ ] Action methods hide locator detail from specs
-- [ ] No `expect` or `test` imports in the page object
+- [ ] No `expect` or `test` require in the page object
+- [ ] `module.exports` at the bottom of the file
 - [ ] Locator choices explained in the generation summary (especially when stable IDs are absent)
 - [ ] `npm run lint` passes on the generated file

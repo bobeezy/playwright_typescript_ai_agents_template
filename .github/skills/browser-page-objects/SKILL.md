@@ -1,13 +1,13 @@
 ---
 name: browser-page-objects
-description: Create or update Playwright page objects in this repo. Use when a web scenario needs a new pages/*Page.ts file, a locator update, or a UI interaction refactor.
+description: Create or update Playwright page objects in this repo. Use when a web scenario needs a new pages/*Page.js file, a locator update, or a UI interaction refactor.
 ---
 
 # 🌐 Skill: Browser page objects
 
 ## Use when
 
-- A web scenario needs a new `pages/*Page.ts` class
+- A web scenario needs a new `pages/*Page.js` class
 - An existing page object has a broken, brittle, or missing locator
 - UI interaction logic has crept into a spec and needs moving to the page object layer
 - A page object is growing too large and repeated UI regions should be extracted
@@ -16,27 +16,18 @@ description: Create or update Playwright page objects in this repo. Use when a w
 
 1. **Read the existing page object** (if it exists) and the spec that uses it before making changes
 2. **Check the HTML or element description** — use the `find-locator` prompt (`../../prompts/find-locator.prompt.md`) to choose the best locator before writing code
-3. **Add or update the page object** following the `LoginPage.ts` pattern (see below)
+3. **Add or update the page object** following the `LoginPage.js` pattern (see below)
 4. **Expose user-facing methods** — hide locator details inside the page object; specs call methods like `login()`, not `usernameInput.fill()`
-5. **Keep `readonly` locator fields** accessible to specs that need to assert on them directly (e.g. `loginPage.flashMessage`)
-6. **Validate** — run `npm run test:web` or a targeted `npx playwright test tests/web/<file>.web.spec.ts`; report pass/fail
+5. **Keep locator fields** accessible to specs that need to assert on them directly (e.g. `loginPage.flashMessage`)
+6. **Validate** — run `npm run test:web` or a targeted `npx playwright test tests/web/<file>.web.spec.js`; report pass/fail
 
 ## Page object pattern
 
-Match `pages/LoginPage.ts` exactly:
+Match `pages/LoginPage.js` exactly:
 
-```ts
-import { Page, Locator } from '@playwright/test';
-
-export class LoginPage {
-  readonly page: Page;
-  readonly usernameInput: Locator;
-  readonly passwordInput: Locator;
-  readonly loginButton: Locator;
-  readonly flashMessage: Locator;
-  readonly logoutButton: Locator;
-
-  constructor(page: Page) {
+```js
+class LoginPage {
+  constructor(page) {
     this.page = page;
     this.usernameInput = page.locator('#username');
     this.passwordInput = page.locator('#password');
@@ -45,40 +36,43 @@ export class LoginPage {
     this.logoutButton = page.locator('a.button.secondary.radius');
   }
 
-  getLoginPath(): string {
+  getLoginPath() {
     return '/login';
   }
 
-  async goto(): Promise<void> {
+  async goto() {
     await this.page.goto(this.getLoginPath());
   }
 
-  async login(username: string, password: string): Promise<void> {
+  async login(username, password) {
     await this.usernameInput.fill(username);
     await this.passwordInput.fill(password);
     await this.loginButton.click();
   }
 
-  async getFlashMessage(): Promise<string> {
+  async getFlashMessage() {
     return (await this.flashMessage.textContent())?.trim() ?? '';
   }
 }
+
+module.exports = { LoginPage };
 ```
 
 ## Rules
 
 | Rule | Detail |
 |------|--------|
-| File location | `pages/<Name>Page.ts` |
-| Import | `import { Page, Locator } from '@playwright/test'` — no `test` or `expect` |
-| Fields | `readonly page: Page` + one `readonly <name>: Locator` per interactive or assertable element |
+| File location | `pages/<Name>Page.js` |
+| No framework imports | No `require` of `test` or `expect` in page objects |
+| Fields | `this.page = page` + one `this.<name> = page.locator(...)` per interactive or assertable element |
 | Constructor | Assign all locators via `page.locator(...)` or semantic locators |
-| Path helper | `getPath(): string` returning the relative URL |
-| Navigation | `async goto(): Promise<void>` calling `this.page.goto(this.getPath())` |
+| Path helper | `getPath()` returning the relative URL |
+| Navigation | `async goto()` calling `this.page.goto(this.getPath())` |
 | Action methods | User-facing (e.g. `login`, `search`, `submit`) — no raw selectors exposed to specs |
-| Feedback helpers | `get<Text>(): Promise<string>` for visible text the spec needs to assert on |
+| Feedback helpers | `async get<Text>()` for visible text the spec needs to assert on |
 | No assertions | Never call `expect(...)` inside a page object — assertions stay in specs |
 | No `waitForTimeout` | Use Playwright's auto-waiting; never add arbitrary delays |
+| Export | `module.exports = { <Name>Page };` at the bottom of the file |
 
 ## Locator priority
 
@@ -93,8 +87,8 @@ export class LoginPage {
 
 ## Security
 
-- No credentials or test data in page objects — those belong in `utils/env.ts` / `data/web/*.json`
-- When adding a new sensitive input field (password, token), extend `credentialSelectors` in `hooks/WebHooks.ts` so `redactCredentialFields()` clears it before screenshots
+- No credentials or test data in page objects — those belong in `utils/env.js` / `data/web/*.json`
+- When adding a new sensitive input field (password, token), extend `credentialSelectors` in `hooks/WebHooks.js` so `redactCredentialFields()` clears it before screenshots
 
 ## References
 
@@ -104,11 +98,12 @@ export class LoginPage {
 
 ## Done when
 
-- [ ] File saved at `pages/<Name>Page.ts`
-- [ ] All fields are `readonly Locator`, assigned in constructor
+- [ ] File saved at `pages/<Name>Page.js`
+- [ ] All locator fields assigned in constructor
 - [ ] `goto()` calls `this.page.goto(this.getPath())`
 - [ ] Action methods hide selector detail from specs
-- [ ] No `expect` or `test` imports in the page object
-- [ ] Sensitive input selectors added to `WebHooks.ts` `credentialSelectors` if applicable
+- [ ] No `expect` or `test` require in the page object
+- [ ] Sensitive input selectors added to `WebHooks.js` `credentialSelectors` if applicable
+- [ ] `module.exports` at the bottom of the file
 - [ ] `npm run lint` passes
 - [ ] `npm run test:web` (or targeted file) passes and results reported

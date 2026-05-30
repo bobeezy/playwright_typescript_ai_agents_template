@@ -1,6 +1,6 @@
 # 🔍 Security guardrail reference
 
-Review and interpretation companion to [`security-guardrails.md`](security-guardrails.md) for this **Playwright + TypeScript** repository.
+Review and interpretation companion to [`security-guardrails.md`](security-guardrails.md) for this **Playwright + JavaScript** repository.
 
 **This file is not a second enforcement source.** The active behavioural contract is `security-guardrails.md` (detailed) and the Security guardrails section in `../copilot-instructions.md` (summary). This file exists to help contributors and reviewers understand the intent, spot red flags in proposed changes, and apply consistent judgement when edge cases arise.
 
@@ -31,13 +31,13 @@ Changes to the rules go in `security-guardrails.md`. Changes to examples or rati
 ## 💡 Rationale for key rules
 
 **Why `getRequiredEnv()` and gitignored credentials?**
-Playwright tests run locally and in CI. Hardcoded credentials leak into `git log`, GitHub diffs, Playwright HTML reports, Allure artefacts, and team chat. `utils/env.ts` + `data/credentials/.env.credentials` (gitignored) keeps secrets out of every surface that gets stored or shared.
+Playwright tests run locally and in CI. Hardcoded credentials leak into `git log`, GitHub diffs, Playwright HTML reports, Allure artefacts, and team chat. `utils/env.js` + `data/credentials/.env.credentials` (gitignored) keeps secrets out of every surface that gets stored or shared.
 
 **Why does `WebHooks` redact fields before screenshots?**
-`hooks/WebHooks.ts` targets `#username`, `input[type="password"]`, and related selectors before `page.screenshot()`. Without this, failure screenshots attached to `testInfo` (and uploaded to Allure or CI artefacts) would contain cleartext passwords. Extend `credentialSelectors` whenever a new sensitive input is added to the app under test.
+`hooks/WebHooks.js` targets `#username`, `input[type="password"]`, and related selectors before `page.screenshot()`. Without this, failure screenshots attached to `testInfo` (and uploaded to Allure or CI artefacts) would contain cleartext passwords. Extend `credentialSelectors` whenever a new sensitive input is added to the app under test.
 
-**Why are `apiReporter.ts` attachments held to the same standard?**
-`utils/apiReporter.ts` attaches request/response metadata to every API test. Logging the raw `Authorization` header or a JSON body that contains a password would persist in `allure-results/` — which is easy to publish accidentally.
+**Why are `apiReporter.js` attachments held to the same standard?**
+`utils/apiReporter.js` attaches request/response metadata to every API test. Logging the raw `Authorization` header or a JSON body that contains a password would persist in `allure-results/` — which is easy to publish accidentally.
 
 **Why are `.github/` edits treated as security-sensitive?**
 `copilot-instructions.md`, `agents/`, `skills/`, `guardrails/`, `prompts/`, and `rules/` govern how Copilot behaves for every contributor. A small wording change that appears editorial can introduce a systematic bypass if the model follows the updated instruction in all subsequent sessions.

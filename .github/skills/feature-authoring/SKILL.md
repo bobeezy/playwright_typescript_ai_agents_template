@@ -23,9 +23,9 @@ Description: Break a requirement into Playwright test scenarios before any code 
 
 | # | Type | Description | Layer | Priority | Expected result | Suggested test name | Target file |
 |---|------|-------------|-------|----------|-----------------|---------------------|-------------|
-| 1 | Positive | Happy-path behaviour | Web / API | P0 | ... | `Positive: ...` | `tests/web/<name>.web.spec.ts` |
-| 2 | Negative | Invalid input or error state | API | P0 | ... | `Negative: ...` | `tests/api/<name>.api.spec.ts` |
-| 3 | Edge | Boundary value or unexpected input | Web | P2 | ... | `Edge: ...` | `tests/web/<name>.web.spec.ts` |
+| 1 | Positive | Happy-path behaviour | Web / API | P0 | ... | `Positive: ...` | `tests/web/<name>.web.spec.js` |
+| 2 | Negative | Invalid input or error state | API | P0 | ... | `Negative: ...` | `tests/api/<name>.api.spec.js` |
+| 3 | Edge | Boundary value or unexpected input | Web | P2 | ... | `Edge: ...` | `tests/web/<name>.web.spec.js` |
 
 **Types**
 
@@ -41,8 +41,8 @@ Description: Break a requirement into Playwright test scenarios before any code 
 
 **Layers**
 
-- **Web** → `tests/web/*.web.spec.ts`, page objects in `pages/`
-- **API** → `tests/api/*.api.spec.ts`, clients in `clients/`
+- **Web** → `tests/web/*.web.spec.js`, page objects in `pages/`
+- **API** → `tests/api/*.api.spec.js`, clients in `clients/`
 - **Both** → separate specs; do not combine UI and HTTP assertions in one file
 
 ## Rules

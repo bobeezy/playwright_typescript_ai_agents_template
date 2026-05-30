@@ -4,7 +4,7 @@
 
 ## Goal
 
-Given an HTML snippet or element description, recommend the best Playwright locator for use in a `pages/*Page.ts` file, following this repo's locator priority and `LoginPage.ts` conventions.
+Given an HTML snippet or element description, recommend the best Playwright locator for use in a `pages/*Page.js` file, following this repo's locator priority and `LoginPage.js` conventions.
 
 ## Inputs
 
@@ -20,7 +20,7 @@ For each element:
 
 1. **Recommended locator** — single best choice with a one-line reason
 2. **Alternatives** — up to two fallbacks, ranked by stability, with reasons
-3. **Page object field** — `readonly` `Locator` declaration as it would appear in `pages/<Name>Page.ts`
+3. **Page object field** — locator field as it would appear in `pages/<Name>Page.js` (assigned in constructor)
 4. **Red flags** — any attribute that looks generated, hashed, or fragile; suggest raising a `data-testid` with the dev team if no stable selector exists
 
 ## Locator priority (in order)
@@ -46,6 +46,6 @@ For each element:
 
 - [ ] A recommended locator is given for every element in the input
 - [ ] Each recommendation includes a reason
-- [ ] The page object field declaration matches `pages/LoginPage.ts` style (`readonly <name>: Locator`)
+- [ ] The page object field declaration matches `pages/LoginPage.js` style (`this.<name> = page.locator(...)`)
 - [ ] Any fragile attributes are flagged clearly
 - [ ] No Appium, no mobile driver, no native selector syntax

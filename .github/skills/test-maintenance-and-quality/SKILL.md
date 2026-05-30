@@ -1,6 +1,6 @@
 ---
 name: test-maintenance-and-quality
-description: Fix failing or flaky tests, improve readability, remove duplication, and enforce layering in this Playwright + TypeScript repo — without changing test behaviour or coverage.
+description: Fix failing or flaky tests, improve readability, remove duplication, and enforce layering in this Playwright + JavaScript repo — without changing test behaviour or coverage.
 ---
 
 # 🔧 Skill: Test maintenance and quality
@@ -24,7 +24,7 @@ description: Fix failing or flaky tests, improve readability, remove duplication
 
 | Symptom | Likely cause | Fix |
 |---------|-------------|-----|
-| `Timeout waiting for locator` | Locator is fragile or the element ID changed | Update locator in `pages/*Page.ts` using priority order |
+| `Timeout waiting for locator` | Locator is fragile or the element ID changed | Update locator in `pages/*Page.js` using priority order |
 | `Expected X, received Y` on URL | Navigation changed or `baseURL` env mismatch | Check `WEB_BASE_URL` env and `goto()` path in page object |
 | API test `status 401` / `403` | Credentials stale or env not loaded | Verify `data/credentials/.env.credentials` and `getRequiredEnv()` call |
 | Test passes locally, fails CI | Timing or worker isolation | Remove `waitForTimeout`; use web-first `expect`; check `fullyParallel` / `workers` config |
@@ -45,7 +45,7 @@ Replace broken selectors using this order — same as the `find-locator` prompt:
 
 ### Specs
 
-- `test` / `expect` imported from `fixtures/webTest.ts` or `fixtures/apiTest.ts`
+- `test` / `expect` imported from `fixtures/webTest.js` or `fixtures/apiTest.js`
 - `expect.hasAssertions()` present in web tests
 - Multi-step flows wrapped in `test.step(...)` with user-journey titles
 - Repeated navigation or assertion sequences extracted to local helpers inside `test.describe`
@@ -53,21 +53,23 @@ Replace broken selectors using this order — same as the `find-locator` prompt:
 
 ### Page objects
 
-- All locator fields are `readonly Locator`
+- All locator fields assigned in constructor: `this.<name> = page.locator(...)`
 - No `expect(...)` calls inside page objects — assertions belong in specs
-- No inline `page.locator(...)` inside methods — use named fields
+- No inline `page.locator(...)` inside methods — use named fields from constructor
+- `module.exports = { <Name>Page };` present at the bottom
 
 ### API clients
 
 - All HTTP calls via `callApiWithReport` — no raw `request.post` in specs
-- Shared request-building logic in private methods rather than duplicated per endpoint
+- Shared request-building logic in helper methods rather than duplicated per endpoint
+- `module.exports = { <Name>ApiClient };` present at the bottom
 
 ## What not to change
 
 - Test titles, scenario coverage, or expected outcomes
-- `WebHooks.ts` credential redaction selectors unless the fix requires it
-- `playwright.config.ts` unless the failure is a configuration issue
-- Fixture registration in `fixtures/webTest.ts` or `fixtures/apiTest.ts`
+- `WebHooks.js` credential redaction selectors unless the fix requires it
+- `playwright.config.js` unless the failure is a configuration issue
+- Fixture registration in `fixtures/webTest.js` or `fixtures/apiTest.js`
 
 ## Security
 
@@ -81,4 +83,3 @@ Replace broken selectors using this order — same as the `find-locator` prompt:
 - [ ] No test titles, coverage, or intended outcomes changed
 - [ ] `npm run lint` passes on touched files
 - [ ] Affected tests re-run and pass; results reported
-
