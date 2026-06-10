@@ -20,7 +20,8 @@ Without this layer, every AI chat starts from zero: wrong fixture imports, secre
 | **`skills/`** | Deep playbooks (API tests, page objects, E2E delivery, security review, maintenance) the agent can follow for multi-step work. |
 | **`specifications/`** | Acceptance criteria for prompt outputs — update with prompts when expected results change. |
 | **`guardrails/`** | Active security contract + reference doc; keeps AI-generated code aligned with no-secrets-in-source policy. |
-| **`rules/`** + **`pull_request_template.md`** | Consistent commit messages, issue titles, and PR descriptions without retyping templates. |
+| **`instructions/`** + **`pull_request_template.md`** | Consistent commit messages, issue titles, and PR descriptions without retyping templates. |
+| **`workflow/playwright.yml`** | Placeholder for GitHub Actions CI (lint + Playwright on push/PR). Populate and move to `workflows/` when ready — GitHub only auto-runs files under `.github/workflows/`. |
 
 ### How this fits the rest of the repo
 
@@ -31,9 +32,10 @@ Playwright tests          ←──rules──  copilot-instructions.md
 pages/, clients/          ←──skills── api-test-development, browser-page-objects, …
 fixtures/, hooks/         ←──agent──  ai-test-engineer
 .env.credentials (gitignored) ←──guardrails── security-guardrails.md
+npm run test:verify       ←──workflow── playwright.yml (CI, when configured)
 ```
 
-**Typical flow:** Jira ticket → `jira-to-feature` prompt (with Playwright MCP) → scenarios → `@ai-test-engineer` implements using skills → `npm run test:verify` before merge.
+**Typical flow:** Jira ticket → `jira-to-feature` prompt (with Playwright MCP) → scenarios → `@ai-test-engineer` implements using skills → `npm run test:verify` before merge → CI workflow (when enabled).
 
 ---
 
@@ -52,16 +54,16 @@ fixtures/, hooks/         ←──agent──  ai-test-engineer
 │   ├── security-guardrails.md             ← active security contract
 │   └── security-guardrail-reference.md    ← rationale + review aid
 │
+├── instructions/
+│   ├── .copilot-commit-message-instructions.md
+│   ├── .copilot-issue-title-instructions.md
+│   └── .copilot-pull-request-description-instructions.md
+│
 ├── prompts/
 │   ├── generate-page-object.prompt.md     ← HTML → page object
 │   ├── find-locator.prompt.md             ← element → best locator
 │   ├── refactor.prompt.md                 ← refactor a file
-│   └── jira-to-feature.md                 ← Jira ticket → specs
-│
-├── rules/
-│   ├── .copilot-commit-message-instructions.md
-│   ├── .copilot-issue-title-instructions.md
-│   └── .copilot-pull-request-description-instructions.md
+│   └── jira-to-feature.prompt.md          ← Jira ticket → specs
 │
 ├── skills/
 │   ├── api-test-development/SKILL.md
@@ -72,12 +74,30 @@ fixtures/, hooks/         ←──agent──  ai-test-engineer
 │   ├── security-review-and-audit/SKILL.md
 │   └── test-maintenance-and-quality/SKILL.md
 │
-└── specifications/
-    ├── findLocator.spec.md
-    ├── jira2Feature.spec.md
-    ├── pageObjectFromHtmlSnippet.spec.md
-    └── refactor.spec.md
+├── specifications/
+│   ├── findLocator.spec.md
+│   ├── jira2Feature.spec.md
+│   ├── pageObjectFromHtmlSnippet.spec.md
+│   └── refactor.spec.md
+│
+└── workflow/
+    └── playwright.yml                     ← CI placeholder (use workflows/ for GitHub Actions)
 ```
+
+### TypeScript conventions (this repo)
+
+All test and framework code uses **TypeScript** (`.ts`), not JavaScript:
+
+| Area | Path pattern |
+|------|----------------|
+| Web specs | `tests/web/*.web.spec.ts` |
+| API specs | `tests/api/*.api.spec.ts` |
+| Page objects | `pages/*Page.ts` |
+| API clients | `clients/*ApiClient.ts` |
+| Fixtures | `fixtures/webTest.ts`, `fixtures/apiTest.ts` |
+| Config | `playwright.config.ts` |
+
+Specs import `test` / `expect` from fixtures — never directly from `@playwright/test`.
 
 ---
 
@@ -117,8 +137,8 @@ Seven self-contained procedures loaded on demand by the agent. Each has a `name`
 | Skill | Purpose |
 |-------|---------|
 | `feature-authoring` | Ticket → scenario table with approval gate before any code is written |
-| `api-test-development` | Add or maintain `tests/api/` specs and `clients/*ApiClient.js` |
-| `browser-page-objects` | Create or update `pages/*Page.js` following `LoginPage.js` conventions |
+| `api-test-development` | Add or maintain `tests/api/` specs and `clients/*ApiClient.ts` |
+| `browser-page-objects` | Create or update `pages/*Page.ts` following `LoginPage.ts` conventions |
 | `mobile-test-development` | Playwright `devices[...]` project setup for responsive coverage |
 | `end-to-end-test-delivery` | Orchestrate the above for cross-layer (web + API) requirements |
 | `test-maintenance-and-quality` | Fix flakes, repair locators, remove duplication and code smell |
@@ -138,8 +158,8 @@ Four on-demand prompts you run yourself in Copilot Chat. Each has `mode: agent` 
 
 | Prompt | What you provide | What you get |
 |--------|-----------------|--------------|
-| `generate-page-object` | Page name, URL path, HTML snippet or element list | A complete `pages/<Name>Page.js` matching `LoginPage.js` conventions |
-| `find-locator` | HTML snippet or element description | Best Playwright locator + locator field declaration + red flags |
+| `generate-page-object` | Page name, URL path, HTML snippet or element list | A complete `pages/<Name>Page.ts` matching `LoginPage.ts` conventions |
+| `find-locator` | HTML snippet or element description | Best Playwright locator + `readonly Locator` field + red flags |
 | `refactor` | File path(s) + optional focus area | Refactored file, change summary, lint notes |
 | `jira-to-feature` | Jira ticket URL or key | Scenario table (Positive/Negative/Edge), then implementation of approved ones |
 
@@ -147,7 +167,7 @@ Four on-demand prompts you run yourself in Copilot Chat. Each has `mode: agent` 
 
 ---
 
-### `rules/` — auto-injected formatting standards
+### `instructions/` — auto-injected formatting standards
 
 Loaded automatically by Copilot when generating the corresponding artefact. You never call these directly.
 
@@ -155,7 +175,9 @@ Loaded automatically by Copilot when generating the corresponding artefact. You 
 |------|-------------------------------|
 | `.copilot-commit-message-instructions.md` | A commit message (`feat(web): ...` conventional format) |
 | `.copilot-issue-title-instructions.md` | A GitHub issue title (`Bug:`, `Feature:`, `Refactor:` …) |
-| `.copilot-pull-request-description-instructions.md` | A PR description (maps diff to the 8-section PR template) |
+| `.copilot-pull-request-description-instructions.md` | A PR description (maps diff to the PR template sections) |
+
+> **Note:** These files previously lived under `rules/`; they were moved to `instructions/` to align with Copilot's instructions folder convention.
 
 ---
 
@@ -179,9 +201,22 @@ Each prompt links to a specification that defines inputs, outputs, rules, and ac
 | `pageObjectFromHtmlSnippet.spec.md` | `generate-page-object.prompt.md` |
 | `findLocator.spec.md` | `find-locator.prompt.md` |
 | `refactor.spec.md` | `refactor.prompt.md` |
-| `jira2Feature.spec.md` | `jira-to-feature.md` |
+| `jira2Feature.spec.md` | `jira-to-feature.prompt.md` |
 
 > These are included via `#file:` in prompt frontmatter. Not invoked directly.
+
+---
+
+### `workflow/playwright.yml` — CI (placeholder)
+
+Empty placeholder for a GitHub Actions workflow that will run `npm run test:verify` (or `lint` + Playwright) on push and pull request.
+
+**Important:** GitHub Actions only discovers workflows in **`.github/workflows/`** (plural). When you add the job definition, either:
+
+- Move the file to `.github/workflows/playwright.yml`, or
+- Copy the contents there and remove the `workflow/` folder
+
+Until then, rely on local `npm run test:verify` and Husky pre-commit checks.
 
 ---
 
@@ -224,9 +259,12 @@ copilot-instructions.md  ←── always loaded, sets the baseline
         │       Runs as agent task (mode: agent)
         │       User provides inputs → agent produces output
         │
-        └── Commit / PR / Issue generation
-                rules/ files auto-injected
-                Output follows conventional commit format and PR template
+        ├── Commit / PR / Issue generation
+        │       instructions/ files auto-injected
+        │       Output follows conventional commit format and PR template
+        │
+        └── CI (when workflow is configured)
+                workflow/playwright.yml → lint + tests on push/PR
 ```
 
 ---
@@ -238,7 +276,7 @@ copilot-instructions.md  ←── always loaded, sets the baseline
 | What | Activates automatically |
 |------|------------------------|
 | `copilot-instructions.md` | Every Copilot Chat session |
-| `rules/*.md` | Copilot generates commit message, issue title, or PR description |
+| `instructions/*.md` | Copilot generates commit message, issue title, or PR description |
 | `pull_request_template.md` | Opening a new PR on GitHub |
 
 ---
@@ -249,7 +287,7 @@ Switch Copilot Chat to **Agent mode** (dropdown in the chat input bar), then:
 
 ```
 @ai-test-engineer Add positive and negative API tests for the checkout endpoint
-@ai-test-engineer Fix the flaky logout test in login.web.spec.js
+@ai-test-engineer Fix the flaky logout test in login.web.spec.ts
 @ai-test-engineer Use the browser-page-objects skill to add a CheckoutPage
 ```
 
@@ -280,7 +318,7 @@ HTML: <input id="email" type="email"> <button type="submit">Pay now</button>
 ```
 #file:.github/prompts/refactor.prompt.md
 
-tests/web/login.web.spec.js — steps are missing test.step wrappers
+tests/web/login.web.spec.ts — steps are missing test.step wrappers
 ```
 
 **Option 3 — Jira prompt (requires MCP server)**
@@ -292,7 +330,7 @@ npm run mcp:playwright
 ```
 
 ```
-#file:.github/prompts/jira-to-feature.md
+#file:.github/prompts/jira-to-feature.prompt.md
 https://your-workspace.atlassian.net/browse/TE-456
 ```
 
@@ -323,8 +361,9 @@ Use the end-to-end-test-delivery skill for the full checkout flow
 | Add web or API test coverage | `@ai-test-engineer` | Agent mode |
 | Fix a failing or flaky test | `@ai-test-engineer` + `test-maintenance-and-quality` skill | Agent mode |
 | Review `.github/` changes safely | `security-review-and-audit` skill | Explicit skill invoke |
-| Consistent commit messages | `rules/.copilot-commit-message-instructions.md` | Automatic |
-| Pre-filled PR description | `pull_request_template.md` + `rules/.copilot-pull-request-description-instructions.md` | Automatic |
+| Consistent commit messages | `instructions/.copilot-commit-message-instructions.md` | Automatic |
+| Pre-filled PR description | `pull_request_template.md` + `instructions/.copilot-pull-request-description-instructions.md` | Automatic |
+| CI on push/PR | `workflow/playwright.yml` → `workflows/` | Configure GitHub Actions |
 
 ---
 
@@ -335,3 +374,5 @@ Use the end-to-end-test-delivery skill for the full checkout flow
 - **Before editing any `.github/` file** — run the `security-review-and-audit` skill self-scan
 - **Skills and prompts** are independent; update them when workflows change without touching the baseline
 - **Specifications** back prompts; update both together when acceptance criteria change
+- **TypeScript paths** — keep `.ts` extensions in skills, prompts, and specs; do not regress to `.js` examples
+- **CI workflow** — when `playwright.yml` is populated, place it under `.github/workflows/` and document required secrets (`ENV_FILE` or repo variables) in the root README
